@@ -1,0 +1,33 @@
+# Every pull request and every push to main: a public repo's minutes are
+# free. One job, the nothing-internal gate, with generic patterns only; a
+# denylist of private names would itself leak them. The gate skips this
+# file, which carries the patterns it looks for.
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  nothing-internal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Nothing internal in a public tree
+        run: |
+          set -uo pipefail
+          if grep -rnIE '(^|[^a-z])/home/|~/[A-Za-z]|\.local/share|localhost:[0-9]+|-dev\.[a-z]+\.[a-z]+' \
+              --exclude-dir=.git --exclude-dir=target --exclude=validate.yml .; then
+            echo "::error::A local path, a private tool or a dev hostname reached a public file (shown above)."
+            exit 1
+          fi
+          if grep -rniE '\bitem [0-9]+\b|\b(dev[0-9]+|qa[0-9]+|copy[0-9]+|designer[0-9]+|reviewer[0-9]+|team-lead)\b' \
+              --exclude-dir=.git --exclude-dir=target --exclude=validate.yml .; then
+            echo "::error::An agent name or an internal item number reached a public file (shown above)."
+            exit 1
+          fi
+          echo "clean"

@@ -1,0 +1,56 @@
+// Common host services; product and module worlds extend this contract.
+package pito:host@0.1.0;
+
+interface log {
+    enum level { debug, info, warn, error }
+    log: func(level: level, message: string);
+}
+interface notify {
+    enum priority { low, normal, high }
+    notice: func(priority: priority, text: string);
+}
+interface kv {
+    get: func(key: string) -> option<list<u8>>;
+    set: func(key: string, value: list<u8>);
+    delete: func(key: string);
+    keys: func(prefix: string) -> list<string>;
+}
+interface net {
+    fetch: func(url: string) -> result<list<u8>, string>;
+    /// A POST with a body; the status code comes back, never the response body.
+    post: func(url: string, content-type: string, body: list<u8>) -> result<u16, string>;
+}
+interface ui {
+    use ui-types.{tree};
+    enum slot { page-body, panel, command, sheet, settings }
+    render: func(slot: slot, tree: tree);
+}
+interface page {
+    use ui-types.{tree};
+    set-page: func(tree: tree);
+}
+world plugin {
+    import log;
+    import notify;
+    import kv;
+    import net;
+    import ui;
+    import page;
+    use ui.{slot};
+    use ui-types.{event, tree};
+    export info: func() -> string;
+    export activate: func();
+    export deactivate: func();
+    export on-event: func(event: event);
+    export render: func(slot: slot, context: string) -> tree;
+}
+
+// Authors may instead include plugin and import only the modules they need.
+// WIT has no optional imports; this convenience world opts into all three.
+world plugin-modules {
+    include plugin;
+    import mcp;
+    import engine;
+    import remote;
+    export call-tool: func(name: string, arguments: string) -> result<string, string>;
+}

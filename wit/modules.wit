@@ -1,0 +1,30 @@
+// Optional module services; authority requires both a grant and a live bridge.
+
+interface mcp {
+    register-tool: func(name: string, description: string, input-schema: string) -> result<_, string>;
+    unregister-tool: func(name: string);
+}
+interface engine {
+    record hit { id: string, score: f32, excerpt: string }
+    embed: func(text: string) -> result<list<f32>, string>;
+    search: func(query: string, scope: string, limit: u32) -> result<list<hit>, string>;
+    dims: func() -> u32;
+}
+interface remote {
+    type exec-handle = u32;
+    record output-chunk { stdout: string, stderr: string }
+    record exit-info { code: s32, stdout: string, stderr: string }
+    variant exec-status { running(output-chunk), exited(exit-info) }
+    listen-addr: func() -> string;
+    set-public-url: func(url: string) -> result<_, string>;
+    clear-public-url: func();
+    exec: func(program: string, args: list<string>) -> result<exec-handle, string>;
+    exec-poll: func(handle: exec-handle) -> exec-status;
+    exec-stop: func(handle: exec-handle);
+}
+// Linker bindings only: base guests need not import any module interface.
+world module-imports {
+    import mcp;
+    import engine;
+    import remote;
+}

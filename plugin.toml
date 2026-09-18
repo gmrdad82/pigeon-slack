@@ -1,0 +1,10 @@
+# This manifest declares the Slack plugin to the orchestrator desk.
+id = "gmrdad82/pigeon-slack"
+name = "Slack"
+version = "0.1.0"
+kind = "plugin"
+hosts = ["pigeon"]
+api = "0.1"
+capabilities = ["net:hooks.slack.com"]
+slots = ["settings"]
+summary = "A message to a Slack webhook when a Task comes back to you: done, stuck or capped."

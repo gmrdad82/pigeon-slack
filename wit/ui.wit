@@ -1,0 +1,133 @@
+/// Renderer-independent typed UI arenas shared by plugins and desks.
+interface ui-types {
+    /// Product palette names available to plugin content.
+    enum tone {
+        ink,
+        dim,
+        faint,
+        accent,
+        ok,
+        warn,
+        danger,
+        raised,
+        sunk,
+        hairline,
+    }
+
+    /// One styled run inside a text node.
+    record span {
+        text: string,
+        bold: bool,
+        italic: bool,
+        code: bool,
+        tone: option<tone>,
+        link: option<string>,
+    }
+
+    /// Child indices and renderer-chosen logical spacing.
+    record container {
+        children: list<u32>,
+        gap: u8,
+    }
+
+    /// An action control identified by the plugin.
+    record button {
+        id: string,
+        label: string,
+        tone: option<tone>,
+    }
+
+    /// An editable value identified by the plugin.
+    record input {
+        id: string,
+        value: string,
+        placeholder: string,
+    }
+
+    /// Plain tabular content; the desk owns its presentation.
+    record table {
+        columns: list<string>,
+        rows: list<list<string>>,
+    }
+
+    /// A logical point inside a canvas.
+    record point { x: f32, y: f32 }
+
+    /// A stroked polyline.
+    record path {
+        points: list<point>,
+        tone: tone,
+        width: f32,
+    }
+
+    /// A rectangle in logical canvas pixels.
+    record rect {
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        fill: option<tone>,
+        stroke: option<tone>,
+    }
+
+    /// A circle in logical canvas pixels.
+    record circle {
+        cx: f32,
+        cy: f32,
+        r: f32,
+        fill: option<tone>,
+        stroke: option<tone>,
+    }
+
+    /// A short canvas label rendered in the desk's type ladder.
+    record label {
+        x: f32,
+        y: f32,
+        text: string,
+        tone: tone,
+        size: u8,
+    }
+
+    /// A bounded canvas drawing command.
+    variant primitive {
+        path(path),
+        rect(rect),
+        circle(circle),
+        label(label),
+    }
+
+    /// A canvas whose coordinates are logical pixels.
+    record canvas {
+        width: f32,
+        height: f32,
+        items: list<primitive>,
+    }
+
+    /// One arena entry; containers refer to child entries by index.
+    variant node {
+        column(container),
+        row(container),
+        text(list<span>),
+        button(button),
+        input(input),
+        table(table),
+        canvas(canvas),
+    }
+
+    /// An exact arena: every node is reachable once from root.
+    record tree {
+        root: u32,
+        nodes: list<node>,
+    }
+
+    /// A changed input value.
+    record input-event { id: string, value: string }
+
+    /// An interaction delivered to the plugin worker.
+    variant event {
+        click(string),
+        input(input-event),
+        submit(string),
+        key(string),
+    }
+}

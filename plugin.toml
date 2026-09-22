@@ -1,4 +1,3 @@
-# This manifest declares the Slack plugin to the orchestrator desk.
 id = "gmrdad82/pigeon-slack"
 name = "Slack"
 version = "0.1.0"

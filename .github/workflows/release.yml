@@ -1,4 +1,3 @@
-# A version tag builds and publishes the three files that make a plugin release.
 name: Release plugin
 
 on:

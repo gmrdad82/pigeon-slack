@@ -1,24 +1,14 @@
-//! The Slack plugin for Done: one page in Plugins (the webhook URL, saved in the
-//! host's own store and shown masked after the host), and a message to that webhook
-//! when a Task comes back to the owner — done, stuck or capped — composed here from
-//! the desk's `task-back` event. The desk itself never talks to Slack; the URL never
-//! reaches a log line.
 wit_bindgen::generate!({ world: "plugin", path: "wit" });
 use pito::host::{kv, log, net, ui, ui_types};
 use std::cell::{Cell, RefCell};
 
-/// Where the URL lives in the plugin's store, and the field's id on the page.
 const URL_KEY: &str = "webhook_url";
 const FIELD: &str = "webhook";
-/// The desk's event, as `on-event` receives it: the name, a colon, a JSON object.
 const TASK_BACK: &str = "task-back:";
-/// The body a webhook expects: a `text` field, Slack's mrkdwn inside.
 const CONTENT_TYPE: &str = "application/json";
 
 thread_local! {
-    // What the owner typed since the last Save, so the field reads back what he types.
     static DRAFT: RefCell<Option<String>> = const { RefCell::new(None) };
-    // The missing-URL warning is said once per activation, not once per Task.
     static WARNED_EMPTY: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -32,7 +22,6 @@ impl Guest for Slack {
         WARNED_EMPTY.with(|w| w.set(false));
     }
     fn deactivate() {}
-    /// The one slot: the page in Plugins.
     fn render(_slot: ui::Slot, _context: String) -> ui_types::Tree {
         page()
     }
@@ -58,7 +47,6 @@ impl Guest for Slack {
     }
 }
 
-/// Save writes the draft to the store (an empty draft forgets the URL) and redraws.
 fn save() {
     let draft = DRAFT.with(|d| d.borrow_mut().take());
     let Some(draft) = draft else {
@@ -79,7 +67,6 @@ fn stored_url() -> Option<String> {
         .filter(|url| !url.is_empty())
 }
 
-/// One message to the webhook; the outcome is logged by status, never by URL.
 fn post(text: &str) {
     let Some(url) = stored_url() else {
         if !WARNED_EMPTY.with(|w| w.replace(true)) {
@@ -102,13 +89,8 @@ fn post(text: &str) {
     }
 }
 
-// ---- the words ------------------------------------------------------------------
-
 pub const TEST_MESSAGE: &str = "🕊️ Done. can reach this channel.";
 
-/// The line for a Task that came back, from the desk's payload
-/// `{ "key", "title", "project", "outcome", "by", "rounds" }`; None when the payload
-/// is not the shape this plugin knows.
 pub fn message_for(json: &str) -> Option<String> {
     let key = field(json, "key")?;
     let title = field(json, "title")?;
@@ -128,7 +110,6 @@ pub fn message_for(json: &str) -> Option<String> {
     })
 }
 
-/// The webhook body: `{"text": "<escaped>"}`.
 pub fn body(text: &str) -> String {
     let mut out = String::with_capacity(text.len() + 12);
     out.push_str("{\"text\":\"");
@@ -147,15 +128,12 @@ pub fn body(text: &str) -> String {
     out
 }
 
-/// One top-level field of a flat JSON object, a string (unescaped) or a number (as
-/// written); enough for the desk's payload without a JSON crate in the guest.
 pub fn field(json: &str, name: &str) -> Option<String> {
     let needle = format!("\"{name}\"");
     let mut rest = json;
     loop {
         let at = rest.find(&needle)?;
         let after = rest[at + needle.len()..].trim_start();
-        // A value that merely contains the name is skipped: a key is followed by a colon.
         let Some(after) = after.strip_prefix(':') else {
             rest = &rest[at + needle.len()..];
             continue;
@@ -172,7 +150,6 @@ pub fn field(json: &str, name: &str) -> Option<String> {
     }
 }
 
-/// Reads a JSON string body up to its closing quote, resolving the escapes.
 fn unescape(quoted: &str) -> String {
     let mut out = String::new();
     let mut chars = quoted.chars();
@@ -200,7 +177,6 @@ fn unescape(quoted: &str) -> String {
     out
 }
 
-/// The URL as the page shows it: the scheme and host, then `/…/[redacted]`.
 pub fn masked(url: &str) -> String {
     let end = url
         .find("://")
@@ -210,9 +186,6 @@ pub fn masked(url: &str) -> String {
     format!("{}/…/[redacted]", &url[..end])
 }
 
-// ---- the page -------------------------------------------------------------------
-
-/// The plugin's page in Plugins: the field, Save, the test verb, the masked value.
 fn page() -> ui_types::Tree {
     let draft = DRAFT.with(|d| d.borrow().clone());
     let current = match stored_url() {

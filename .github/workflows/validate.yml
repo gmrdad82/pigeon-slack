@@ -1,7 +1,3 @@
-# Every pull request and every push to main: a public repo's minutes are
-# free. One job, the nothing-internal gate, with generic patterns only; a
-# denylist of private names would itself leak them. The gate skips this
-# file, which carries the patterns it looks for.
 name: Validate
 
 on:
